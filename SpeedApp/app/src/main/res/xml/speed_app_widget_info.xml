@@ -3,7 +3,7 @@
 
     android:initialKeyguardLayout="@layout/speed_app_widget"
     android:initialLayout="@layout/speed_app_widget"
-    android:minWidth="300dp"
+    android:minWidth="150dp"
     android:minHeight="240dp"
     android:previewImage="@drawable/icon"
     android:resizeMode="horizontal|vertical"

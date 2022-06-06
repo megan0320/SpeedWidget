@@ -43,6 +43,9 @@ public class SpeedService extends Service implements IBaseGpsListener {
     double mCurrentLongitude=0;
     CLocation mLocation;
 
+    static long LOCATION_UPDATE_TIME=1000L;
+    static float LOCATION_UPDATE_DISTANCE=2000.0f;
+
     public static Runnable runnable = null;
     public Handler handler = null;
 
@@ -58,7 +61,7 @@ public class SpeedService extends Service implements IBaseGpsListener {
             /*location*/
             LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                //Log.i(LOG_TAG,"requesting permission failed");
+                Log.i(LOG_TAG,"requesting permission failed");
                 // here to request the missing permissions, and then overriding
                 //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
                 //                                          int[] grantResults)
@@ -66,9 +69,10 @@ public class SpeedService extends Service implements IBaseGpsListener {
                 // for ActivityCompat#requestPermissions for more details.
             }
             //Log.i(LOG_TAG,"requesting permission succeeded");
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 30, this);
-            locationManager.requestLocationUpdates(LocationManager.FUSED_PROVIDER, 0, 30, this);
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 30, this);
+
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, LOCATION_UPDATE_TIME, LOCATION_UPDATE_DISTANCE, this);
+            locationManager.requestLocationUpdates(LocationManager.FUSED_PROVIDER, LOCATION_UPDATE_TIME, LOCATION_UPDATE_DISTANCE, this);
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, LOCATION_UPDATE_TIME, LOCATION_UPDATE_DISTANCE, this);
 
             this.updateSpeed(null);
 
@@ -176,7 +180,7 @@ public class SpeedService extends Service implements IBaseGpsListener {
         }
 
         Formatter fmt = new Formatter(new StringBuilder());
-        fmt.format(Locale.US, "%5.1f", mCurrentSpeed);
+        fmt.format(Locale.US, "%,.1f", mCurrentSpeed);
         String strCurrentSpeed = fmt.toString();
         strCurrentSpeed = strCurrentSpeed.replace(' ', '0');
 
@@ -196,12 +200,13 @@ public class SpeedService extends Service implements IBaseGpsListener {
         String strCurrentLongitude = fmt.toString();
         strCurrentLongitude = strCurrentLongitude.replace(' ', '0');
 
-        updateWorkoutsWidget(this,strCurrentSpeed,strCurrentLatitude,strCurrentLongitude);
+        updateWorkoutsWidget(this, (int) mCurrentSpeed,strCurrentSpeed,strCurrentLatitude,strCurrentLongitude);
     }
 
-    public  void updateWorkoutsWidget(Context context,String speed,String latitude,String longitude ) {
+    public  void updateWorkoutsWidget(Context context,Integer speedVal,String speed,String latitude,String longitude ) {
         Intent intent = new Intent(context, SpeedAppWidget.class);
         intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+        intent.putExtra("speedVal", speedVal);
         intent.putExtra("speed", speed);
         intent.putExtra("latitude", latitude);
         intent.putExtra("longitude", longitude);
