@@ -28,12 +28,14 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 
+import com.speed.speedapp.IBaseGpsListener;
+
 import java.util.Formatter;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class SpeedService extends Service implements IBaseGpsListener{
+public class SpeedService extends Service implements IBaseGpsListener {
     static String LOG_TAG="SpeedAppSpeedService";
     private static Timer timer = new Timer();
     float mCurrentSpeed = 0;
