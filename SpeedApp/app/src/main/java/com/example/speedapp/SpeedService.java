@@ -4,7 +4,6 @@ import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
@@ -17,12 +16,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
-import android.renderscript.RenderScript;
 import android.util.Log;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
-import android.widget.RemoteViews;
-import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
@@ -37,7 +31,6 @@ import java.util.TimerTask;
 
 public class SpeedService extends Service implements IBaseGpsListener {
     static String LOG_TAG="SpeedAppSpeedService";
-    private static Timer timer = new Timer();
     float mCurrentSpeed = 0;
     double mCurrentLatitude=0;
     double mCurrentLongitude=0;
@@ -46,119 +39,62 @@ public class SpeedService extends Service implements IBaseGpsListener {
     static long LOCATION_UPDATE_TIME=1000L;
     static float LOCATION_UPDATE_DISTANCE=2000.0f;
 
-    public static Runnable runnable = null;
-    public Handler handler = null;
-
     @Override
     public void onCreate() {
-        Log.d(LOG_TAG, "onCreate()");
-        super.onCreate();
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        //Log.d(LOG_TAG, "onStartCommand()");
-            /*location*/
-            LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                Log.i(LOG_TAG,"requesting permission failed");
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-            }
-            //Log.i(LOG_TAG,"requesting permission succeeded");
-
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, LOCATION_UPDATE_TIME, LOCATION_UPDATE_DISTANCE, this);
-            locationManager.requestLocationUpdates(LocationManager.FUSED_PROVIDER, LOCATION_UPDATE_TIME, LOCATION_UPDATE_DISTANCE, this);
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, LOCATION_UPDATE_TIME, LOCATION_UPDATE_DISTANCE, this);
-
-            this.updateSpeed(null);
-
-
-            /*
-            handler = new Handler();
-            runnable = new Runnable() {
-                public void run() {
-                    Log.i(LOG_TAG,"Service is still running");
-                    handler.postDelayed(runnable, 10000);
-                }
-            };
-            handler.postDelayed(runnable, 15000);*/
-            /*
-            CheckBox chkUseMetricUntis = (CheckBox) this.findViewById(R.id.chkMetricUnits);
-            chkUseMetricUntis.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-
-                @Override
-                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                    // TODO Auto-generated method stub
-                    this.updateSpeed(null);
-                }
-            });*/
-            /*start foreground*/
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                CharSequence name = "speed";
-                String description = "speed description";
-                int importance = NotificationManager.IMPORTANCE_DEFAULT;
-                NotificationChannel channel = new NotificationChannel("1", name, importance);
-                channel.setDescription(description);
-
-                // Don't see these lines in your code...
-                NotificationManager notificationManager = getSystemService(NotificationManager.class);
-                notificationManager.createNotificationChannel(channel);
-
-                startForegroundService(intent);
-            }
-
-            //startForeground(this);
-            //startService();
-            /*
-        }*/
-        return START_STICKY;
-
-    }
-
-    private void startService() {
-        Log.i(LOG_TAG,"startService");
-        //timer.scheduleAtFixedRate(new mainTask(), 0, 5000);
-    }
-
-    private class mainTask extends TimerTask {
-        public void run() {
-            //updateSpeed(mLocation);
-
-            Log.i(LOG_TAG,"mainTask, current speed is "+mCurrentSpeed+ ", location is "+mLocation);
-            //Log.i(LOG_TAG,", location is "+mLocation);
-        }
-    }
-    private void startForeground(Context context) {
-        Log.i(LOG_TAG,"startForeground");
-        String channelId ="";
+        int d = Log.d(LOG_TAG, "onCreate()");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Log.i(LOG_TAG,"Build.VERSION.SDK_INT >= Build.VERSION_CODES.O");
             CharSequence name = "speed";
             String description = "speed description";
             int importance = NotificationManager.IMPORTANCE_DEFAULT;
             NotificationChannel channel = new NotificationChannel("1", name, importance);
             channel.setDescription(description);
 
-            // Don't see these lines in your code...
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
-            startForegroundService(new Intent(context, SpeedAppWidget.class));
-        }else{
-            Log.i(LOG_TAG,"Build.VERSION.SDK_INT < Build.VERSION_CODES.O");
-            NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(getApplicationContext(), channelId);
-            Notification notification = notificationBuilder.setOngoing(true)
-                    .setSmallIcon(R.mipmap.ic_launcher)
-                    .setPriority(0)
-                    .setCategory(Notification.CATEGORY_SERVICE)
-                    .build();
-            startForeground(101, notification);
 
+            Notification notification = new Notification.Builder(getApplicationContext(),"1").build();
+
+            startForeground(1, notification);
         }
+        super.onCreate();
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        //Log.d(LOG_TAG, "onStartCommand()");
+        /*location*/
+        LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.i(LOG_TAG,"requesting permission failed");
+
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+        }else {
+
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, LOCATION_UPDATE_TIME, LOCATION_UPDATE_DISTANCE, this);
+            //locationManager.requestLocationUpdates(LocationManager.FUSED_PROVIDER, LOCATION_UPDATE_TIME, LOCATION_UPDATE_DISTANCE, this);
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, LOCATION_UPDATE_TIME, LOCATION_UPDATE_DISTANCE, this);
+
+            this.updateSpeed(null);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "speed";
+            String description = "speed description";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel("1", name, importance);
+            channel.setDescription(description);
+
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+
+            startForegroundService(intent);
+        }
+
+
+        return START_STICKY;
 
     }
 

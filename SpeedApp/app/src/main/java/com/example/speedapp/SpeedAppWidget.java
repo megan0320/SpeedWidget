@@ -1,8 +1,4 @@
 package com.example.speedapp;
-
-import android.app.ActivityManager;
-import android.app.AlarmManager;
-import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
@@ -13,20 +9,9 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.os.Build;
-import android.os.SystemClock;
 import android.util.Log;
-import android.view.View;
-import android.widget.Button;
 import android.widget.RemoteViews;
-import android.widget.TextView;
 
-import androidx.core.content.ContextCompat;
-
-import java.util.concurrent.ThreadLocalRandom;
-
-/**
- * Implementation of App Widget functionality.
- */
 public class SpeedAppWidget extends AppWidgetProvider {
 
     static final String TAG = "SpeedAppWidget";
@@ -76,6 +61,7 @@ public class SpeedAppWidget extends AppWidgetProvider {
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
+        Log.d(TAG, "onUpdate");
         // There may be multiple widgets active, so update all of them
         for (int appWidgetId : appWidgetIds) {
             updateAppWidget(context, appWidgetManager, appWidgetId);
@@ -84,6 +70,7 @@ public class SpeedAppWidget extends AppWidgetProvider {
 
     @Override
     public void onEnabled(Context context) {
+        Log.d(TAG, "onEnabled");
         // Enter relevant functionality for when the first widget is created
     }
 
