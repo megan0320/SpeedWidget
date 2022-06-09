@@ -1,8 +1,10 @@
 package com.example.speedapp;
+import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -25,19 +27,19 @@ public class SpeedAppWidget extends AppWidgetProvider {
 
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(),R.layout.speed_app_widget);
 
+        Intent intent = context.getPackageManager().getLaunchIntentForPackage("com.asuka.naviportal");
+        if (intent != null) {
+            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, 0);
+            remoteViews.setOnClickPendingIntent(R.id.navi_image, pendingIntent);
+        }
+
+
         Intent serviceIntent = new Intent(context,SpeedService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(serviceIntent);
         }
 
-        remoteViews.setTextViewText(R.id.appwidget_speed, mCurrentSpeed+" m/s");
-
-
-        Bitmap bitmap = Bitmap.createBitmap(400, 180, Bitmap.Config.ARGB_8888);
-        Canvas c = new Canvas(bitmap);
-        remoteViews.setImageViewBitmap(R.id.widget_image, bitmap);
-
-        getWidgetBitmap(context,mCurrentSpeedVal,bitmap);
+        remoteViews.setTextViewText(R.id.appwidget_speed, mCurrentSpeed+" km/s");
 
         // Instruct the widget manager to update the widget
         appWidgetManager.updateAppWidget(appWidgetId, remoteViews);
@@ -78,45 +80,5 @@ public class SpeedAppWidget extends AppWidgetProvider {
     public void onDisabled(Context context) {
         // Enter relevant functionality for when the last widget is disabled
     }
-    private Bitmap getWidgetBitmap(Context context, int percentage,Bitmap bitmap) {
 
-        int width = 400;
-        int height = 400;
-        int stroke = 30;
-        int padding = 5;
-        float density = context.getResources().getDisplayMetrics().density;
-
-        //Paint for arc stroke.
-        Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG | Paint.ANTI_ALIAS_FLAG);
-        paint.setStrokeWidth(stroke);
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeCap(Paint.Cap.ROUND);
-        //paint.setStrokeJoin(Paint.Join.ROUND);
-        //paint.setPathEffect(new CornerPathEffect(10) );
-
-        //Paint for text values.
-        Paint mTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mTextPaint.setTextSize(50);
-        mTextPaint.setColor(Color.WHITE);
-        mTextPaint.setTextAlign(Paint.Align.CENTER);
-
-        final RectF arc = new RectF();
-        arc.set((stroke/2) + padding, (stroke/2) + padding, width-padding-(stroke/2), height-padding-(stroke/2));
-
-        //Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmap);
-        //First draw full arc as background.
-        paint.setColor(Color.argb(75, 255, 255, 255));
-        canvas.drawArc(arc, 135, 275, false, paint);
-        //Then draw arc progress with actual value.
-        paint.setColor(Color.WHITE);
-        canvas.drawArc(arc, percentage, 200, false, paint);
-        //Draw text value.
-        canvas.drawText(percentage + "m/s", bitmap.getWidth() / 2, (bitmap.getHeight() - mTextPaint.ascent()) / 2, mTextPaint);
-        //Draw widget title.
-        mTextPaint.setTextSize(50);
-        //canvas.drawText(context.getString(R.string.widget_text_arc_battery), bitmap.getWidth() / 2, bitmap.getHeight()-(stroke+padding), mTextPaint);
-
-        return  bitmap;
-    }
 }

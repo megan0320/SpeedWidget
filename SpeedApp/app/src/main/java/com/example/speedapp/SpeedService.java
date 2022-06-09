@@ -15,6 +15,7 @@ import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -25,23 +26,30 @@ import androidx.core.app.NotificationCompat;
 import com.speed.speedapp.IBaseGpsListener;
 
 import java.util.Formatter;
+import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class SpeedService extends Service implements IBaseGpsListener {
-    static String LOG_TAG="SpeedAppSpeedService";
+    static String LOG_TAG = "SpeedAppSpeedService";
     float mCurrentSpeed = 0;
-    double mCurrentLatitude=0;
-    double mCurrentLongitude=0;
-    CLocation mLocation;
+    double mCurrentLatitude = 0;
+    double mCurrentLongitude = 0;
 
-    static long LOCATION_UPDATE_TIME=1000L;
-    static float LOCATION_UPDATE_DISTANCE=2000.0f;
+    LocationManager mLocationManager;
+    CLocation mLocation;
+    boolean mStarted = false;
+    HandlerThread mQueuedThread;
+    /** Handler for mQueuedThread */
+    Handler mHandler;
+
+    static long LOCATION_UPDATE_TIME = 1000 * 5;//1000 * 60 1 minute
+    static float LOCATION_UPDATE_DISTANCE = 50;//200m
 
     @Override
     public void onCreate() {
-        int d = Log.d(LOG_TAG, "onCreate()");
+        Log.d(LOG_TAG, "onCreate()");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             CharSequence name = "speed";
             String description = "speed description";
@@ -52,52 +60,98 @@ public class SpeedService extends Service implements IBaseGpsListener {
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
 
-            Notification notification = new Notification.Builder(getApplicationContext(),"1").build();
+            Notification notification = new Notification.Builder(getApplicationContext(), "1").build();
 
+            mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+            mQueuedThread = new HandlerThread("QueuedPosition");
             startForeground(1, notification);
+
         }
         super.onCreate();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        //Log.d(LOG_TAG, "onStartCommand()");
+        Log.d(LOG_TAG, "onStartCommand()");
         /*location*/
-        LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             Log.i(LOG_TAG,"requesting permission failed");
-
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
         }else {
-
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, LOCATION_UPDATE_TIME, LOCATION_UPDATE_DISTANCE, this);
-            //locationManager.requestLocationUpdates(LocationManager.FUSED_PROVIDER, LOCATION_UPDATE_TIME, LOCATION_UPDATE_DISTANCE, this);
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, LOCATION_UPDATE_TIME, LOCATION_UPDATE_DISTANCE, this);
-
-            this.updateSpeed(null);
+            if (!mStarted) {
+                start();
+            }
+            mStarted = true;
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = "speed";
-            String description = "speed description";
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel channel = new NotificationChannel("1", name, importance);
-            channel.setDescription(description);
 
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
-
-            startForegroundService(intent);
-        }
 
 
         return START_STICKY;
 
     }
 
+    public void start() {
+        Log.i(LOG_TAG, "start");
+        if (!mStarted) {
+            mQueuedThread.start();
+            mHandler = new Handler(mQueuedThread.getLooper());
+        } else {
+            mHandler.removeCallbacks(positioningTask);
+        }
+        mStarted = true;
+
+
+        //mHandler.post(positioningTask);
+        mHandler.postDelayed(positioningTask, 1000);
+    }
+
+    private Runnable positioningTask = new Runnable() {
+        public void run() {
+            Location location = getLastKnownLocation();
+            Log.d(LOG_TAG, "positioning ..");
+            if (location == null) {
+                mHandler.postDelayed(this, 1000);   // positioning every 1sec.
+            } else {
+                updateLocationInfo(location);
+            }
+        }
+    };
+
+    void updateLocationInfo(Location location) {
+
+        double longitude = location.getLongitude();
+        double latitude = location.getLatitude();
+
+        Log.i(LOG_TAG, "updateLocationInfo : " + longitude + "," + latitude);
+        mLocation = new CLocation(location, this.useMetricUnits());
+    }
+
+    private Location getLastKnownLocation() {
+        List<String> providers = mLocationManager.getProviders(true);
+        Location bestLocation = null;
+        String bestProvider = null;
+        for (String provider : providers) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                break;
+            }
+            Location l = mLocationManager.getLastKnownLocation(provider);
+            if (l == null) {
+                continue;
+            }
+            if (bestLocation == null || l.getAccuracy() < bestLocation.getAccuracy()) {
+                // Found best last known location: %s", l);
+                bestLocation = l;
+                bestProvider = provider;
+            }
+        }
+
+        if (bestProvider != null) {
+            Log.d(LOG_TAG, "requestLocationUpdate");
+            mLocationManager.requestLocationUpdates(bestProvider, LOCATION_UPDATE_TIME, LOCATION_UPDATE_DISTANCE, this);
+        }
+
+        return bestLocation;
+    }
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -110,9 +164,10 @@ public class SpeedService extends Service implements IBaseGpsListener {
 
         if(location != null) {
             location.setUseMetricunits(this.useMetricUnits());
-            mCurrentSpeed = location.getSpeed();
+
             mCurrentLatitude=location.getLatitude();
             mCurrentLongitude=location.getLongitude();
+            mCurrentSpeed = location.getSpeed();
         }
 
         Formatter fmt = new Formatter(new StringBuilder());
@@ -122,7 +177,7 @@ public class SpeedService extends Service implements IBaseGpsListener {
 
         String strUnits = "miles/hour";
         if(this.useMetricUnits()) {
-            strUnits = "meters/second";
+            strUnits = "km/hr";
         }
         Log.i(LOG_TAG,strCurrentSpeed + " " + strUnits);
 
@@ -135,6 +190,7 @@ public class SpeedService extends Service implements IBaseGpsListener {
         fmt.format(Locale.US, "%,.2f", mCurrentLongitude);
         String strCurrentLongitude = fmt.toString();
         strCurrentLongitude = strCurrentLongitude.replace(' ', '0');
+
 
         updateWorkoutsWidget(this, (int) mCurrentSpeed,strCurrentSpeed,strCurrentLatitude,strCurrentLongitude);
     }
@@ -165,8 +221,10 @@ public class SpeedService extends Service implements IBaseGpsListener {
 
     @Override
     public void onLocationChanged(Location location) {
+        Log.d(LOG_TAG, "onLocationChanged ..");
         if(location != null) {
             mLocation = new CLocation(location, this.useMetricUnits());
+            Log.i(LOG_TAG, "Accuracy is "+location.getAccuracy());
             this.updateSpeed(mLocation);
         }
     }

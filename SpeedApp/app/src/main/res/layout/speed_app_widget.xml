@@ -12,22 +12,22 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:gravity="center"
-        >
+        android:gravity="center">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:id="@+id/content"
-            android:background="@drawable/widget_map_bg_1"
+            android:background="	#A9A9A9"
             android:orientation="vertical">
             <ImageView
-                android:id="@+id/widget_image"
+                android:id="@+id/navi_image"
                 android:paddingTop="50dp"
                 android:layout_gravity="center"
                 android:layout_width="fill_parent"
                 android:layout_height="fill_parent"
-                android:layout_weight="1"/>
+                android:layout_weight="1"
+                android:src="@drawable/navi_icon"/>
 
             <LinearLayout
                 android:layout_width="fill_parent"

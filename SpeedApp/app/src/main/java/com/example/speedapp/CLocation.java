@@ -67,8 +67,8 @@ public class CLocation extends Location {
 
     @Override
     public float getSpeed() {
-        Log.i(LOG_TAG,"getSpeed");
         float nSpeed = super.getSpeed() * 3.6f;
+        //Log.d(LOG_TAG, "speed in CLocation is "+super.getSpeed());
         if(!this.getUseMetricUnits())
         {
             //Convert meters/second to miles/hour
